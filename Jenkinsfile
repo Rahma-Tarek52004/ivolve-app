@@ -1,9 +1,8 @@
-﻿pipeline {
+pipeline {
     agent any
     environment {
-        IMAGE      = 'rahmatarek/ivolve-app'
-        TAG        = "${env.BUILD_NUMBER}"
-        K8S_SERVER = 'https://192.168.247.130:6443'
+        IMAGE = 'rahmatarek/ivolve-app'
+        TAG   = "${env.BUILD_NUMBER}"
     }
     stages {
         stage('Checkout') {
@@ -20,7 +19,7 @@
         }
         stage('Push to DockerHub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
                     sh '''
                         echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
                         docker push ${IMAGE}:${TAG}
@@ -39,10 +38,10 @@
         }
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([string(credentialsId: 'k8s-token', variable: 'K8S_TOKEN')]) {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     sh '''
-                        kubectl --server=$K8S_SERVER --token=$K8S_TOKEN --insecure-skip-tls-verify -n ivolve apply -f k8s/deployment.yaml
-                        kubectl --server=$K8S_SERVER --token=$K8S_TOKEN --insecure-skip-tls-verify -n ivolve rollout status deployment/ivolveapp --timeout=180s
+                        kubectl -n ivolve apply -f k8s/deployment.yaml
+                        kubectl -n ivolve rollout status deployment/ivolveapp --timeout=180s
                     '''
                 }
             }
