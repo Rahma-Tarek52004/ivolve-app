@@ -36,6 +36,11 @@ pipeline {
                 sh 'grep "image:" k8s/deployment.yaml'
             }
         }
+        stage('Wait for Cluster') {
+            steps {
+                input message: 'Stop Docker, start the VMs (master then worker), wait 3 minutes, then press Proceed'
+            }
+        }
         stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
